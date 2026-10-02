@@ -10,21 +10,22 @@
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
   <style>
+
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
       background: #f2f2f2;
-      padding: 20px 10px;
+      text-align: center;
       margin: 0;
+      padding: 20px 15px;
     }
 
     .contenedor {
       max-width: 420px;
       margin: auto;
       background: white;
-      padding: 20px;
-      border-radius: 18px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.12);
     }
 
     h1 {
@@ -36,48 +37,51 @@
       color: #555;
     }
 
+    video {
+      width: 100%;
+      border-radius: 18px;
+      margin-top: 15px;
+      transform: scaleX(-1);
+      background: #000;
+    }
+
     button {
       width: 100%;
-      padding: 16px;
-      margin: 8px 0;
-      border: 0;
-      border-radius: 12px;
-      font-size: 18px;
+      padding: 18px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 14px;
+      font-size: 20px;
+      font-weight: bold;
       color: white;
-      cursor: pointer;
     }
 
     .registrar {
-      background: #444;
+      background: #555;
     }
 
     .entrada {
-      background: #16803c;
+      background: #16a637;
     }
 
     .salida {
-      background: #b42318;
+      background: #d92121;
     }
 
-    video {
-      width: 100%;
+    .mensaje {
       margin-top: 15px;
-      border-radius: 15px;
-      display: none;
-      transform: scaleX(-1);
-    }
-
-    #mensaje {
       font-size: 18px;
       font-weight: bold;
-      margin-top: 15px;
+      min-height: 25px;
     }
 
-    #estado {
-      color: #666;
-      font-size: 15px;
+    .estado {
+      font-size: 16px;
+      color: #555;
     }
+
   </style>
+
 </head>
 
 <body>
@@ -87,133 +91,177 @@
   <h1>CHECADOR</h1>
   <h3>PAROTA 1</h3>
 
-  <p id="estado">Cargando reconocimiento facial...</p>
+  <div class="estado" id="estado">
+    Cargando reconocimiento facial...
+  </div>
 
-  <button class="registrar" onclick="registrarRostro()">
+  <video id="video" autoplay muted playsinline></video>
+
+  <button class="registrar" onclick="registrarCara()">
     👤 REGISTRAR MI CARA
   </button>
 
-  <button class="entrada" onclick="checar('ENTRADA')">
+  <button class="entrada" onclick="marcar('ENTRADA')">
     🟢 ENTRADA
   </button>
 
-  <button class="salida" onclick="checar('SALIDA')">
+  <button class="salida" onclick="marcar('SALIDA')">
     🔴 SALIDA
   </button>
 
-  <video id="camara" autoplay playsinline muted></video>
-
-  <p id="mensaje"></p>
+  <div class="mensaje" id="mensaje"></div>
 
 </div>
 
+
 <script>
 
-const MODEL_URL =
-  "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js-models@master/";
+/* =========================================================
+   CONFIGURACIÓN
+========================================================= */
 
-let modelosListos = false;
-let stream = null;
+const URL_APPS_SCRIPT =
+"https://script.google.com/macros/s/AKfycbwHwlML5bF7mxs9lq3bJsmomtc2dJPFZYcB3LeneEE8DvQ4jH_RbudHYhYE0IB6ZX8W/exec";
+
+const SUCURSAL = "PAROTA 1";
+
+const EMPLEADO = "Rubén";
+
+const DISTANCIA_MAXIMA = 0.55;
 
 
-/* =========================
-   CARGAR MODELOS
-========================= */
+/* =========================================================
+   VARIABLES
+========================================================= */
 
-async function cargarModelos() {
+let video = document.getElementById("video");
 
-  const estado = document.getElementById("estado");
+let estado = document.getElementById("estado");
+
+let mensaje = document.getElementById("mensaje");
+
+let modeloListo = false;
+
+let descriptorRegistrado = null;
+
+let procesando = false;
+
+
+/* =========================================================
+   INICIAR
+========================================================= */
+
+async function iniciar() {
 
   try {
 
     estado.innerText = "Cargando reconocimiento facial...";
 
-    await faceapi.nets.tinyFaceDetector.loadFromUri(
-      MODEL_URL + "tiny_face_detector"
-    );
+    await Promise.all([
 
-    await faceapi.nets.faceLandmark68Net.loadFromUri(
-      MODEL_URL + "face_landmark_68"
-    );
+      faceapi.nets.tinyFaceDetector.loadFromUri(
+        "https://justadudewhohacks.github.io/face-api.js/models"
+      ),
 
-    await faceapi.nets.faceRecognitionNet.loadFromUri(
-      MODEL_URL + "face_recognition"
-    );
+      faceapi.nets.faceLandmark68Net.loadFromUri(
+        "https://justadudewhohacks.github.io/face-api.js/models"
+      ),
 
-    modelosListos = true;
+      faceapi.nets.faceRecognitionNet.loadFromUri(
+        "https://justadudewhohacks.github.io/face-api.js/models"
+      )
 
-    estado.innerText = "Reconocimiento facial listo ✅";
+    ]);
+
+    modeloListo = true;
+
+    await iniciarCamara();
+
+    cargarCaraRegistrada();
 
   } catch (error) {
 
     console.error(error);
 
     estado.innerText =
-      "❌ Error cargando reconocimiento facial.";
-
-  }
-}
-
-
-/* =========================
-   ABRIR CÁMARA
-========================= */
-
-async function abrirCamara() {
-
-  const video = document.getElementById("camara");
-  const mensaje = document.getElementById("mensaje");
-
-  try {
-
-    if (!stream) {
-
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-          width: {
-            ideal: 640
-          },
-          height: {
-            ideal: 480
-          }
-        },
-        audio: false
-      });
-
-      video.srcObject = stream;
-
-    }
-
-    video.style.display = "block";
-
-    mensaje.innerText = "📷 Coloca tu rostro frente a la cámara.";
-
-    await video.play();
-
-    return video;
-
-  } catch (error) {
-
-    console.error(error);
+      "❌ Error al cargar reconocimiento facial";
 
     mensaje.innerText =
-      "❌ No se pudo abrir la cámara.";
+      "Revisa tu conexión a internet.";
 
-    return null;
   }
+
 }
 
 
-/* =========================
-   OBTENER ROSTRO
-========================= */
+/* =========================================================
+   CÁMARA
+========================================================= */
 
-async function obtenerRostro() {
+async function iniciarCamara() {
 
-  const video = document.getElementById("camara");
+  const stream = await navigator.mediaDevices.getUserMedia({
 
-  const resultado =
+    video: {
+      facingMode: "user",
+      width: {
+        ideal: 640
+      },
+      height: {
+        ideal: 480
+      }
+    },
+
+    audio: false
+
+  });
+
+  video.srcObject = stream;
+
+  estado.innerText =
+    "Reconocimiento facial listo ✅";
+
+}
+
+
+/* =========================================================
+   CARGAR CARA
+========================================================= */
+
+function cargarCaraRegistrada() {
+
+  const guardada =
+    localStorage.getItem("cara_ruben");
+
+  if (!guardada) {
+
+    estado.innerText =
+      "⚠️ Rubén todavía no está registrado";
+
+    return;
+
+  }
+
+  descriptorRegistrado =
+    new Float32Array(JSON.parse(guardada));
+
+  estado.innerText =
+    "Rubén registrado correctamente ✅";
+
+}
+
+
+/* =========================================================
+   DETECTAR ROSTRO
+========================================================= */
+
+async function detectarRostro() {
+
+  if (!modeloListo) {
+    return null;
+  }
+
+  const deteccion =
     await faceapi
       .detectSingleFace(
         video,
@@ -225,206 +273,264 @@ async function obtenerRostro() {
       .withFaceLandmarks()
       .withFaceDescriptor();
 
-  return resultado;
+  return deteccion;
+
 }
 
 
-/* =========================
-   REGISTRAR A RUBÉN
-========================= */
+/* =========================================================
+   REGISTRAR CARA
+========================================================= */
 
-async function registrarRostro() {
+async function registrarCara() {
 
-  const mensaje = document.getElementById("mensaje");
+  if (procesando) return;
 
-  if (!modelosListos) {
-
-    mensaje.innerText =
-      "⏳ El reconocimiento todavía está cargando.";
-
-    return;
-  }
-
-  const video = await abrirCamara();
-
-  if (!video) return;
+  procesando = true;
 
   mensaje.innerText =
-    "👤 Mira directamente a la cámara...";
+    "📷 Mira directamente a la cámara...";
 
-  await esperar(1500);
-
-  let descriptores = [];
+  const descriptores = [];
 
   for (let i = 0; i < 5; i++) {
 
-    mensaje.innerText =
-      "📸 Registrando rostro " + (i + 1) + " de 5...";
-
     await esperar(700);
 
-    const rostro = await obtenerRostro();
+    const deteccion =
+      await detectarRostro();
 
-    if (rostro) {
+    if (!deteccion) {
 
-      descriptores.push(
-        Array.from(rostro.descriptor)
-      );
+      mensaje.innerText =
+        "❌ No pude detectar tu rostro.";
+
+      procesando = false;
+
+      return;
 
     }
-  }
 
-  if (descriptores.length < 3) {
+    descriptores.push(
+      deteccion.descriptor
+    );
 
     mensaje.innerText =
-      "❌ No se pudo registrar correctamente. Mira de frente a la cámara.";
+      "📷 Registrando rostro " +
+      (i + 1) +
+      " de 5...";
 
-    return;
   }
+
+
+  const promedio =
+    promedioDescriptores(descriptores);
+
 
   localStorage.setItem(
-    "rostro_Ruben",
-    JSON.stringify(descriptores)
+    "cara_ruben",
+    JSON.stringify(Array.from(promedio))
   );
+
+
+  descriptorRegistrado = promedio;
+
 
   mensaje.innerText =
-    "✅ RUBÉN REGISTRADO CORRECTAMENTE";
+    "✅ Rubén registrado correctamente";
+
+  estado.innerText =
+    "Rostro registrado ✅";
+
+
+  procesando = false;
 
 }
 
 
-/* =========================
-   RECONOCER
-========================= */
+/* =========================================================
+   MARCAR ENTRADA / SALIDA
+========================================================= */
 
-async function reconocerRostro() {
+async function marcar(movimiento) {
 
-  const datos =
-    localStorage.getItem("rostro_Ruben");
+  if (procesando) return;
 
-  if (!datos) {
-
-    return false;
-  }
-
-  const rostrosGuardados =
-    JSON.parse(datos);
-
-  const video = document.getElementById("camara");
-
-  const rostro =
-    await obtenerRostro();
-
-  if (!rostro) {
-
-    return false;
-  }
-
-  let distanciaMinima = Infinity;
-
-  for (const guardado of rostrosGuardados) {
-
-    const distancia =
-      distanciaEuclidiana(
-        rostro.descriptor,
-        new Float32Array(guardado)
-      );
-
-    if (distancia < distanciaMinima) {
-
-      distanciaMinima = distancia;
-    }
-  }
-
-  console.log(
-    "Distancia facial:",
-    distanciaMinima
-  );
-
-  /*
-    Umbral inicial de prueba.
-    Después lo ajustaremos con pruebas reales.
-  */
-
-  return distanciaMinima < 0.50;
-}
-
-
-/* =========================
-   ENTRADA / SALIDA
-========================= */
-
-async function checar(tipo) {
-
-  const mensaje =
-    document.getElementById("mensaje");
-
-  if (!modelosListos) {
+  if (!modeloListo) {
 
     mensaje.innerText =
       "⏳ Espera a que cargue el reconocimiento.";
 
     return;
+
   }
 
-  if (!localStorage.getItem("rostro_Ruben")) {
+
+  if (!descriptorRegistrado) {
 
     mensaje.innerText =
-      "⚠️ Primero registra la cara de Rubén.";
+      "⚠️ Primero debes registrar el rostro.";
 
     return;
+
   }
 
-  const video = await abrirCamara();
 
-  if (!video) return;
+  procesando = true;
 
   mensaje.innerText =
-    "🔍 Verificando identidad...";
+    "🔎 Verificando rostro...";
 
-  await esperar(1000);
 
-  const reconocido =
-    await reconocerRostro();
+  const deteccion =
+    await detectarRostro();
 
-  if (reconocido) {
 
-    mensaje.innerText =
-      "✅ RUBÉN IDENTIFICADO — " + tipo;
-
-  } else {
+  if (!deteccion) {
 
     mensaje.innerText =
-      "❌ PERSONA NO AUTORIZADA";
+      "❌ No se detectó ningún rostro.";
+
+    procesando = false;
+
+    return;
 
   }
+
+
+  const distancia =
+    faceapi.euclideanDistance(
+      descriptorRegistrado,
+      deteccion.descriptor
+    );
+
+
+  console.log(
+    "Distancia facial:",
+    distancia
+  );
+
+
+  if (distancia > DISTANCIA_MAXIMA) {
+
+    mensaje.innerText =
+      "❌ Persona no registrada.";
+
+    procesando = false;
+
+    return;
+
+  }
+
+
+  mensaje.innerText =
+    "✅ Rubén identificado";
+
+
+  enviarRegistro(movimiento);
+
 }
 
 
-/* =========================
-   DISTANCIA FACIAL
-========================= */
+/* =========================================================
+   ENVIAR A GOOGLE SHEETS
+========================================================= */
 
-function distanciaEuclidiana(a, b) {
+function enviarRegistro(movimiento) {
 
-  let suma = 0;
+  const datos = new URLSearchParams();
 
-  for (let i = 0; i < a.length; i++) {
+  datos.append(
+    "empleado",
+    EMPLEADO
+  );
 
-    const diferencia =
-      a[i] - b[i];
+  datos.append(
+    "sucursal",
+    SUCURSAL
+  );
 
-    suma +=
-      diferencia * diferencia;
-  }
+  datos.append(
+    "movimiento",
+    movimiento
+  );
 
-  return Math.sqrt(suma);
+
+  fetch(URL_APPS_SCRIPT, {
+
+    method: "POST",
+
+    mode: "no-cors",
+
+    headers: {
+      "Content-Type":
+        "application/x-www-form-urlencoded"
+    },
+
+    body: datos.toString()
+
+  })
+  .then(() => {
+
+    mensaje.innerText =
+      "✅ " +
+      EMPLEADO +
+      " identificado — " +
+      movimiento;
+
+    procesando = false;
+
+  })
+  .catch((error) => {
+
+    console.error(error);
+
+    mensaje.innerText =
+      "⚠️ Rostro identificado, pero hubo un problema al guardar.";
+
+    procesando = false;
+
+  });
+
 }
 
 
-/* =========================
+/* =========================================================
+   PROMEDIAR DESCRIPTORES
+========================================================= */
+
+function promedioDescriptores(lista) {
+
+  const longitud =
+    lista[0].length;
+
+  const resultado =
+    new Float32Array(longitud);
+
+
+  for (let i = 0; i < longitud; i++) {
+
+    let suma = 0;
+
+    for (const descriptor of lista) {
+
+      suma += descriptor[i];
+
+    }
+
+    resultado[i] =
+      suma / lista.length;
+
+  }
+
+  return resultado;
+
+}
+
+
+/* =========================================================
    ESPERAR
-========================= */
+========================================================= */
 
 function esperar(ms) {
 
@@ -435,13 +541,14 @@ function esperar(ms) {
 }
 
 
-/* =========================
-   INICIAR
-========================= */
+/* =========================================================
+   INICIAR SISTEMA
+========================================================= */
 
-cargarModelos();
+iniciar();
 
 </script>
 
 </body>
+
 </html>
