@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checador Parota 1</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f2f2f2;
+      padding: 30px 15px;
+    }
+
+    .contenedor {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 18px;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      margin: 10px 0;
+      border: 0;
+      border-radius: 12px;
+      font-size: 20px;
+      color: white;
+    }
+
+    .entrada {
+      background: #16803c;
+    }
+
+    .salida {
+      background: #b42318;
+    }
+
+    video {
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 15px;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <h1>CHECADOR</h1>
+  <h3>PAROTA 1</h3>
+
+  <button class="entrada" onclick="abrirCamara()">
+    🟢 ENTRADA
+  </button>
+
+  <button class="salida">
+    🔴 SALIDA
+  </button>
+
+  <video id="camara" autoplay playsinline></video>
+
+  <p id="mensaje"></p>
+
+</div>
+
+<script>
+
+async function abrirCamara() {
+
+  const video = document.getElementById("camara");
+  const mensaje = document.getElementById("mensaje");
+
+  try {
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user"
+      },
+      audio: false
+    });
+
+    video.srcObject = stream;
+    video.style.display = "block";
+
+    mensaje.innerHTML = "📷 Cámara funcionando correctamente";
+
+  } catch (error) {
+
+    mensaje.innerHTML =
+      "❌ No se pudo abrir la cámara: " + error.message;
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>
