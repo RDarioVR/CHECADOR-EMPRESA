@@ -37,6 +37,16 @@
       color: #555;
     }
 
+    select {
+      width: 100%;
+      padding: 15px;
+      margin: 12px 0;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      font-size: 17px;
+      background: white;
+    }
+
     video {
       width: 100%;
       border-radius: 18px;
@@ -80,82 +90,194 @@
       color: #555;
     }
 
+    .empleadoSeleccionado {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
   </style>
 
 </head>
+
 
 <body>
 
 <div class="contenedor">
 
   <h1>CHECADOR</h1>
+
   <h3>PAROTA 1</h3>
 
   <div class="estado" id="estado">
     Cargando reconocimiento facial...
   </div>
 
-  <video id="video" autoplay muted playsinline></video>
 
-  <button class="registrar" onclick="registrarCara()">
+  <select id="empleado">
+
+    <option value="">
+      Selecciona tu nombre
+    </option>
+
+    <option value="Rosa Eugenia García">
+      Rosa Eugenia García
+    </option>
+
+    <option value="Francisco Gonzáles Guerrero">
+      Francisco Gonzáles Guerrero
+    </option>
+
+    <option value="Enrique Montoya Ramírez">
+      Enrique Montoya Ramírez
+    </option>
+
+    <option value="Armando Manzo Tene">
+      Armando Manzo Tene
+    </option>
+
+    <option value="Rafael González">
+      Rafael González
+    </option>
+
+  </select>
+
+
+  <div class="empleadoSeleccionado" id="empleadoSeleccionado"></div>
+
+
+  <video
+    id="video"
+    autoplay
+    muted
+    playsinline>
+  </video>
+
+
+  <button
+    class="registrar"
+    onclick="registrarCara()">
+
     👤 REGISTRAR MI CARA
+
   </button>
 
-  <button class="entrada" onclick="marcar('ENTRADA')">
+
+  <button
+    class="entrada"
+    onclick="marcar('ENTRADA')">
+
     🟢 ENTRADA
+
   </button>
 
-  <button class="salida" onclick="marcar('SALIDA')">
+
+  <button
+    class="salida"
+    onclick="marcar('SALIDA')">
+
     🔴 SALIDA
+
   </button>
 
-  <div class="mensaje" id="mensaje"></div>
+
+  <div
+    class="mensaje"
+    id="mensaje">
+  </div>
 
 </div>
 
 
+
 <script>
+
 
 /* =========================================================
    CONFIGURACIÓN
 ========================================================= */
 
+
 const URL_APPS_SCRIPT =
 "https://script.google.com/macros/s/AKfycbwHwlML5bF7mxs9lq3bJsmomtc2dJPFZYcB3LeneEE8DvQ4jH_RbudHYhYE0IB6ZX8W/exec";
 
-const SUCURSAL = "PAROTA 1";
 
-const EMPLEADO = "Rubén";
+const SUCURSAL =
+"PAROTA 1";
 
-const DISTANCIA_MAXIMA = 0.55;
+
+const DISTANCIA_MAXIMA =
+0.55;
+
+
+
+/* =========================================================
+   EMPLEADOS
+========================================================= */
+
+
+const EMPLEADOS = [
+
+  "Rosa Eugenia García",
+
+  "Francisco Gonzáles Guerrero",
+
+  "Enrique Montoya Ramírez",
+
+  "Armando Manzo Tene",
+
+  "Rafael González"
+
+];
+
 
 
 /* =========================================================
    VARIABLES
 ========================================================= */
 
-let video = document.getElementById("video");
 
-let estado = document.getElementById("estado");
+let video =
+document.getElementById("video");
 
-let mensaje = document.getElementById("mensaje");
 
-let modeloListo = false;
+let estado =
+document.getElementById("estado");
 
-let descriptorRegistrado = null;
 
-let procesando = false;
+let mensaje =
+document.getElementById("mensaje");
+
+
+let empleadoSelect =
+document.getElementById("empleado");
+
+
+let empleadoSeleccionado =
+document.getElementById("empleadoSeleccionado");
+
+
+let modeloListo =
+false;
+
+
+let procesando =
+false;
+
 
 
 /* =========================================================
    INICIAR
 ========================================================= */
 
+
 async function iniciar() {
 
   try {
 
-    estado.innerText = "Cargando reconocimiento facial...";
+    estado.innerText =
+      "Cargando reconocimiento facial...";
+
 
     await Promise.all([
 
@@ -173,11 +295,16 @@ async function iniciar() {
 
     ]);
 
-    modeloListo = true;
+
+    modeloListo =
+      true;
+
 
     await iniciarCamara();
 
-    cargarCaraRegistrada();
+
+    actualizarEstadoCaras();
+
 
   } catch (error) {
 
@@ -194,29 +321,39 @@ async function iniciar() {
 }
 
 
+
 /* =========================================================
    CÁMARA
 ========================================================= */
 
+
 async function iniciarCamara() {
 
-  const stream = await navigator.mediaDevices.getUserMedia({
+  const stream =
+    await navigator.mediaDevices.getUserMedia({
 
-    video: {
-      facingMode: "user",
-      width: {
-        ideal: 640
+      video: {
+
+        facingMode: "user",
+
+        width: {
+          ideal: 640
+        },
+
+        height: {
+          ideal: 480
+        }
+
       },
-      height: {
-        ideal: 480
-      }
-    },
 
-    audio: false
+      audio: false
 
-  });
+    });
 
-  video.srcObject = stream;
+
+  video.srcObject =
+    stream;
+
 
   estado.innerText =
     "Reconocimiento facial listo ✅";
@@ -224,96 +361,279 @@ async function iniciarCamara() {
 }
 
 
+
 /* =========================================================
-   CARGAR CARA
+   CAMBIO DE EMPLEADO
 ========================================================= */
 
-function cargarCaraRegistrada() {
+
+empleadoSelect.addEventListener(
+  "change",
+  function() {
+
+    const nombre =
+      empleadoSelect.value;
+
+
+    empleadoSeleccionado.innerText =
+      nombre
+        ? "Empleado seleccionado: " + nombre
+        : "";
+
+
+    if (nombre) {
+
+      const guardado =
+        obtenerCara(nombre);
+
+
+      if (guardado) {
+
+        mensaje.innerText =
+          "✅ Rostro ya registrado.";
+
+      } else {
+
+        mensaje.innerText =
+          "⚠️ Rostro todavía no registrado.";
+
+      }
+
+    } else {
+
+      mensaje.innerText =
+        "";
+
+    }
+
+  }
+);
+
+
+
+/* =========================================================
+   CLAVE PARA LOCALSTORAGE
+========================================================= */
+
+
+function claveCara(nombre) {
+
+  return "cara_" +
+    nombre
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_");
+
+}
+
+
+
+/* =========================================================
+   GUARDAR CARA
+========================================================= */
+
+
+function guardarCara(nombre, descriptor) {
+
+  localStorage.setItem(
+
+    claveCara(nombre),
+
+    JSON.stringify(
+      Array.from(descriptor)
+    )
+
+  );
+
+}
+
+
+
+/* =========================================================
+   OBTENER CARA
+========================================================= */
+
+
+function obtenerCara(nombre) {
 
   const guardada =
-    localStorage.getItem("cara_ruben");
+    localStorage.getItem(
+      claveCara(nombre)
+    );
+
 
   if (!guardada) {
 
+    return null;
+
+  }
+
+
+  try {
+
+    return new Float32Array(
+      JSON.parse(guardada)
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    return null;
+
+  }
+
+}
+
+
+
+/* =========================================================
+   ACTUALIZAR ESTADO
+========================================================= */
+
+
+function actualizarEstadoCaras() {
+
+  let registrados = 0;
+
+
+  for (const nombre of EMPLEADOS) {
+
+    if (obtenerCara(nombre)) {
+
+      registrados++;
+
+    }
+
+  }
+
+
+  if (registrados === 0) {
+
     estado.innerText =
-      "⚠️ Rubén todavía no está registrado";
+      "⚠️ No hay empleados registrados";
 
     return;
 
   }
 
-  descriptorRegistrado =
-    new Float32Array(JSON.parse(guardada));
 
   estado.innerText =
-    "Rubén registrado correctamente ✅";
+    "Rostros registrados: " +
+    registrados +
+    " de " +
+    EMPLEADOS.length +
+    " ✅";
 
 }
+
 
 
 /* =========================================================
    DETECTAR ROSTRO
 ========================================================= */
 
+
 async function detectarRostro() {
 
   if (!modeloListo) {
+
     return null;
+
   }
 
+
   const deteccion =
+
     await faceapi
+
       .detectSingleFace(
+
         video,
+
         new faceapi.TinyFaceDetectorOptions({
+
           inputSize: 320,
+
           scoreThreshold: 0.5
+
         })
+
       )
+
       .withFaceLandmarks()
+
       .withFaceDescriptor();
+
 
   return deteccion;
 
 }
 
 
+
 /* =========================================================
    REGISTRAR CARA
 ========================================================= */
+
 
 async function registrarCara() {
 
   if (procesando) return;
 
-  procesando = true;
+
+  const nombre =
+    empleadoSelect.value;
+
+
+  if (!nombre) {
+
+    mensaje.innerText =
+      "⚠️ Primero selecciona tu nombre.";
+
+    return;
+
+  }
+
+
+  procesando =
+    true;
+
 
   mensaje.innerText =
     "📷 Mira directamente a la cámara...";
 
+
   const descriptores = [];
+
 
   for (let i = 0; i < 5; i++) {
 
     await esperar(700);
 
+
     const deteccion =
       await detectarRostro();
+
 
     if (!deteccion) {
 
       mensaje.innerText =
         "❌ No pude detectar tu rostro.";
 
-      procesando = false;
+      procesando =
+        false;
 
       return;
 
     }
 
+
     descriptores.push(
       deteccion.descriptor
     );
+
 
     mensaje.innerText =
       "📷 Registrando rostro " +
@@ -324,37 +644,42 @@ async function registrarCara() {
 
 
   const promedio =
-    promedioDescriptores(descriptores);
+    promedioDescriptores(
+      descriptores
+    );
 
 
-  localStorage.setItem(
-    "cara_ruben",
-    JSON.stringify(Array.from(promedio))
+  guardarCara(
+    nombre,
+    promedio
   );
 
 
-  descriptorRegistrado = promedio;
-
-
   mensaje.innerText =
-    "✅ Rubén registrado correctamente";
+    "✅ " +
+    nombre +
+    " registrado correctamente";
 
-  estado.innerText =
-    "Rostro registrado ✅";
+
+  actualizarEstadoCaras();
 
 
-  procesando = false;
+  procesando =
+    false;
 
 }
+
 
 
 /* =========================================================
    MARCAR ENTRADA / SALIDA
 ========================================================= */
 
+
 async function marcar(movimiento) {
 
   if (procesando) return;
+
 
   if (!modeloListo) {
 
@@ -366,17 +691,23 @@ async function marcar(movimiento) {
   }
 
 
-  if (!descriptorRegistrado) {
+  const cantidadRegistrados =
+    contarCarasRegistradas();
+
+
+  if (cantidadRegistrados === 0) {
 
     mensaje.innerText =
-      "⚠️ Primero debes registrar el rostro.";
+      "⚠️ Primero registra los rostros.";
 
     return;
 
   }
 
 
-  procesando = true;
+  procesando =
+    true;
+
 
   mensaje.innerText =
     "🔎 Verificando rostro...";
@@ -391,64 +722,192 @@ async function marcar(movimiento) {
     mensaje.innerText =
       "❌ No se detectó ningún rostro.";
 
-    procesando = false;
+    procesando =
+      false;
 
     return;
 
   }
 
 
-  const distancia =
-    faceapi.euclideanDistance(
-      descriptorRegistrado,
+  const resultado =
+    identificarPersona(
       deteccion.descriptor
     );
 
 
-  console.log(
-    "Distancia facial:",
-    distancia
-  );
-
-
-  if (distancia > DISTANCIA_MAXIMA) {
+  if (!resultado) {
 
     mensaje.innerText =
       "❌ Persona no registrada.";
 
-    procesando = false;
+    procesando =
+      false;
 
     return;
 
   }
 
 
+  const nombre =
+    resultado.nombre;
+
+
   mensaje.innerText =
-    "✅ Rubén identificado";
+    "✅ " +
+    nombre +
+    " identificado";
 
 
-  enviarRegistro(movimiento);
+  enviarRegistro(
+    nombre,
+    movimiento
+  );
 
 }
+
+
+
+/* =========================================================
+   IDENTIFICAR PERSONA
+========================================================= */
+
+
+function identificarPersona(
+  descriptorActual
+) {
+
+  let mejorNombre =
+    null;
+
+
+  let menorDistancia =
+    Infinity;
+
+
+  for (const nombre of EMPLEADOS) {
+
+    const descriptor =
+      obtenerCara(nombre);
+
+
+    if (!descriptor) {
+
+      continue;
+
+    }
+
+
+    const distancia =
+      faceapi.euclideanDistance(
+
+        descriptor,
+
+        descriptorActual
+
+      );
+
+
+    console.log(
+      nombre +
+      " distancia facial:",
+      distancia
+    );
+
+
+    if (
+      distancia <
+      menorDistancia
+    ) {
+
+      menorDistancia =
+        distancia;
+
+      mejorNombre =
+        nombre;
+
+    }
+
+  }
+
+
+  if (
+    mejorNombre &&
+    menorDistancia <= DISTANCIA_MAXIMA
+  ) {
+
+    return {
+
+      nombre:
+        mejorNombre,
+
+      distancia:
+        menorDistancia
+
+    };
+
+  }
+
+
+  return null;
+
+}
+
+
+
+/* =========================================================
+   CONTAR CARAS
+========================================================= */
+
+
+function contarCarasRegistradas() {
+
+  let total =
+    0;
+
+
+  for (const nombre of EMPLEADOS) {
+
+    if (obtenerCara(nombre)) {
+
+      total++;
+
+    }
+
+  }
+
+
+  return total;
+
+}
+
 
 
 /* =========================================================
    ENVIAR A GOOGLE SHEETS
 ========================================================= */
 
-function enviarRegistro(movimiento) {
 
-  const datos = new URLSearchParams();
+function enviarRegistro(
+  nombre,
+  movimiento
+) {
+
+  const datos =
+    new URLSearchParams();
+
 
   datos.append(
     "empleado",
-    EMPLEADO
+    nombre
   );
+
 
   datos.append(
     "sucursal",
     SUCURSAL
   );
+
 
   datos.append(
     "movimiento",
@@ -456,96 +915,141 @@ function enviarRegistro(movimiento) {
   );
 
 
-  fetch(URL_APPS_SCRIPT, {
+  fetch(
+    URL_APPS_SCRIPT,
+    {
 
-    method: "POST",
+      method: "POST",
 
-    mode: "no-cors",
+      mode: "no-cors",
 
-    headers: {
-      "Content-Type":
-        "application/x-www-form-urlencoded"
-    },
+      headers: {
 
-    body: datos.toString()
+        "Content-Type":
+          "application/x-www-form-urlencoded"
 
-  })
+      },
+
+      body:
+        datos.toString()
+
+    }
+
+  )
+
   .then(() => {
 
     mensaje.innerText =
       "✅ " +
-      EMPLEADO +
-      " identificado — " +
+      nombre +
+      " — " +
       movimiento;
 
-    procesando = false;
+
+    procesando =
+      false;
 
   })
+
+
   .catch((error) => {
 
     console.error(error);
 
+
     mensaje.innerText =
       "⚠️ Rostro identificado, pero hubo un problema al guardar.";
 
-    procesando = false;
+
+    procesando =
+      false;
 
   });
 
 }
 
 
+
 /* =========================================================
    PROMEDIAR DESCRIPTORES
 ========================================================= */
 
-function promedioDescriptores(lista) {
+
+function promedioDescriptores(
+  lista
+) {
 
   const longitud =
     lista[0].length;
 
+
   const resultado =
-    new Float32Array(longitud);
+    new Float32Array(
+      longitud
+    );
 
 
-  for (let i = 0; i < longitud; i++) {
+  for (
+    let i = 0;
+    i < longitud;
+    i++
+  ) {
 
-    let suma = 0;
+    let suma =
+      0;
 
-    for (const descriptor of lista) {
 
-      suma += descriptor[i];
+    for (
+      const descriptor of lista
+    ) {
+
+      suma +=
+        descriptor[i];
 
     }
 
+
     resultado[i] =
-      suma / lista.length;
+      suma /
+      lista.length;
 
   }
+
 
   return resultado;
 
 }
 
 
+
 /* =========================================================
    ESPERAR
 ========================================================= */
 
+
 function esperar(ms) {
 
   return new Promise(
-    resolve => setTimeout(resolve, ms)
+
+    resolve =>
+      setTimeout(
+        resolve,
+        ms
+      )
+
   );
 
 }
+
 
 
 /* =========================================================
    INICIAR SISTEMA
 ========================================================= */
 
+
 iniciar();
+
 
 </script>
 
