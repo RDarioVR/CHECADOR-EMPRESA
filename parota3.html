@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>CHECADOR - PAROTA 3</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      text-align: center;
+    }
+
+    .contenedor {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #555;
+    }
+
+    select,
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 17px;
+    }
+
+    select {
+      border: 1px solid #ccc;
+      background: white;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #registrar {
+      background: #444;
+      color: white;
+    }
+
+    #entrada {
+      background: #198754;
+      color: white;
+    }
+
+    #salida {
+      background: #dc3545;
+      color: white;
+    }
+
+    button:disabled {
+      background: #aaa !important;
+      cursor: not-allowed;
+    }
+
+    .camara {
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 15px;
+      overflow: hidden;
+      background: black;
+    }
+
+    video {
+      width: 100%;
+      display: block;
+      transform: scaleX(-1);
+    }
+
+    #mensaje {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      min-height: 25px;
+    }
+
+    .info {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <h1>CHECADOR</h1>
+  <h2>PAROTA 3</h2>
+
+  <select id="empleado">
+    <option value="">Selecciona empleado</option>
+    <option value="José Félix Villa Cervantes">
+      José Félix Villa Cervantes
+    </option>
+    <option value="Bianca Vianey Muñoz López">
+      Bianca Vianey Muñoz López
+    </option>
+    <option value="Esmeralda Sujey Ramírez Salinas">
+      Esmeralda Sujey Ramírez Salinas
+    </option>
+  </select>
+
+  <button id="registrar">
+    REGISTRAR MI CARA
+  </button>
+
+  <div class="camara">
+    <video id="video" autoplay muted playsinline></video>
+  </div>
+
+  <button id="entrada">
+    ENTRADA
+  </button>
+
+  <button id="salida">
+    SALIDA
+  </button>
+
+  <div id="mensaje">
+    Cargando cámara...
+  </div>
+
+  <div class="info">
+    La entrada y salida se identifican automáticamente mediante reconocimiento facial.
+  </div>
+
+</div>
+
+<script>
+
+const URL_APPS_SCRIPT =
+"https://script.google.com/macros/s/AKfycbwHwlML5bF7mxs9lq3bJSmomtc2dJPFZYcB3LeneEE8DvQ4jH_RbudHYhYE0IB6ZX8W/exec";
+
+const SUCURSAL = "PAROTA 3";
+
+const DISTANCIA_MAXIMA = 0.55;
+
+const empleados = [
+  "José Félix Villa Cervantes",
+  "Bianca Vianey Muñoz López",
+  "Esmeralda Sujey Ramírez Salinas"
+];
+
+const video = document.getElementById("video");
+const empleadoSelect = document.getElementById("empleado");
+const registrarBtn = document.getElementById("registrar");
+const entradaBtn = document.getElementById("entrada");
+const salidaBtn = document.getElementById("salida");
+const mensaje = document.getElementById("mensaje");
+
+let modelosCargados = false;
+
+
+/* ================================
+   NORMALIZAR NOMBRE
+================================ */
+
+function normalizarNombre(nombre) {
+
+  return nombre
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
+}
+
+
+/* ================================
+   CLAVE LOCALSTORAGE
+================================ */
+
+function claveEmpleado(nombre) {
+
+  return "cara_" + SUCURSAL + "_" + normalizarNombre(nombre);
+
+}
+
+
+/* ================================
+   CARGAR MODELOS
+================================ */
+
+async function cargarModelos() {
+
+  mensaje.innerText = "Cargando reconocimiento facial...";
+
+  const URL_MODELOS =
+    "https://justadudewhohacks.github.io/face-api.js/models";
+
+  try {
+
+    await faceapi.nets.tinyFaceDetector.loadFromUri(URL_MODELOS);
+
+    await faceapi.nets.faceLandmark68Net.loadFromUri(URL_MODELOS);
+
+    await faceapi.nets.faceRecognitionNet.loadFromUri(URL_MODELOS);
+
+    modelosCargados = true;
+
+    mensaje.innerText = "Iniciando cámara...";
+
+    iniciarCamara();
+
+  } catch (error) {
+
+    console.error(error);
+
+    mensaje.innerText =
+      "Error cargando reconocimiento facial.";
+
+  }
+
+}
+
+
+/* ================================
+   INICIAR CÁMARA
+================================ */
+
+async function iniciarCamara() {
+
+  try {
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user"
+      },
+      audio: false
+    });
+
+    video.srcObject = stream;
+
+    mensaje.innerText =
+      "Cámara lista. Puedes registrar una cara o checar entrada/salida.";
+
+  } catch (error) {
+
+    console.error(error);
+
+    mensaje.innerText =
+      "No se pudo acceder a la cámara.";
+
+  }
+
+}
+
+
+/* ================================
+   OBTENER DESCRIPTOR
+================================ */
+
+async function obtenerDescriptor() {
+
+  const deteccion =
+    await faceapi
+      .detectSingleFace(
+        video,
+        new faceapi.TinyFaceDetectorOptions({
+          inputSize: 320,
+          scoreThreshold: 0.5
+        })
+      )
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+  if (!deteccion) {
+    return null;
+  }
+
+  return deteccion.descriptor;
+
+}
+
+
+/* ================================
+   REGISTRAR CARA
+================================ */
+
+registrarBtn.addEventListener("click", async () => {
+
+  if (!modelosCargados) {
+
+    mensaje.innerText =
+      "El reconocimiento facial todavía está cargando.";
+
+    return;
+
+  }
+
+  const empleado = empleadoSelect.value;
+
+  if (!empleado) {
+
+    mensaje.innerText =
+      "Primero selecciona al empleado.";
+
+    return;
+
+  }
+
+  registrarBtn.disabled = true;
+
+  mensaje.innerText =
+    "Mira a la cámara. Registrando rostro...";
+
+  const descriptores = [];
+
+  for (let i = 0; i < 5; i++) {
+
+    mensaje.innerText =
+      "Captura " + (i + 1) + " de 5...";
+
+    await new Promise(resolve =>
+      setTimeout(resolve, 1000)
+    );
+
+    const descriptor =
+      await obtenerDescriptor();
+
+    if (descriptor) {
+
+      descriptores.push(
+        Array.from(descriptor)
+      );
+
+    }
+
+  }
+
+  if (descriptores.length < 3) {
+
+    mensaje.innerText =
+      "No se pudo registrar correctamente. Intenta nuevamente.";
+
+    registrarBtn.disabled = false;
+
+    return;
+
+  }
+
+  const promedio = [];
+
+  for (let i = 0; i < 128; i++) {
+
+    let suma = 0;
+
+    descriptores.forEach(d => {
+      suma += d[i];
+    });
+
+    promedio.push(
+      suma / descriptores.length
+    );
+
+  }
+
+  localStorage.setItem(
+    claveEmpleado(empleado),
+    JSON.stringify(promedio)
+  );
+
+  mensaje.innerText =
+    "Cara registrada correctamente: " + empleado;
+
+  registrarBtn.disabled = false;
+
+});
+
+
+/* ================================
+   BUSCAR PERSONA
+================================ */
+
+async function identificarPersona() {
+
+  const descriptor =
+    await obtenerDescriptor();
+
+  if (!descriptor) {
+
+    return null;
+
+  }
+
+  let mejorEmpleado = null;
+  let menorDistancia = Infinity;
+
+  for (const empleado of empleados) {
+
+    const guardado =
+      localStorage.getItem(
+        claveEmpleado(empleado)
+      );
+
+    if (!guardado) {
+      continue;
+    }
+
+    const descriptorGuardado =
+      new Float32Array(
+        JSON.parse(guardado)
+      );
+
+    const distancia =
+      faceapi.euclideanDistance(
+        descriptor,
+        descriptorGuardado
+      );
+
+    if (distancia < menorDistancia) {
+
+      menorDistancia = distancia;
+      mejorEmpleado = empleado;
+
+    }
+
+  }
+
+  if (
+    mejorEmpleado &&
+    menorDistancia <= DISTANCIA_MAXIMA
+  ) {
+
+    return {
+      empleado: mejorEmpleado,
+      distancia: menorDistancia
+    };
+
+  }
+
+  return null;
+
+}
+
+
+/* ================================
+   REGISTRAR MOVIMIENTO
+================================ */
+
+async function registrarMovimiento(tipo) {
+
+  if (!modelosCargados) {
+
+    mensaje.innerText =
+      "El reconocimiento facial todavía está cargando.";
+
+    return;
+
+  }
+
+  entradaBtn.disabled = true;
+  salidaBtn.disabled = true;
+
+  mensaje.innerText =
+    "Buscando rostro...";
+
+  const resultado =
+    await identificarPersona();
+
+  if (!resultado) {
+
+    mensaje.innerText =
+      "Rostro no reconocido.";
+
+    entradaBtn.disabled = false;
+    salidaBtn.disabled = false;
+
+    return;
+
+  }
+
+  const empleado =
+    resultado.empleado;
+
+  mensaje.innerText =
+    "Identificado: " + empleado;
+
+  try {
+
+    await fetch(URL_APPS_SCRIPT, {
+
+      method: "POST",
+
+      mode: "no-cors",
+
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+
+      body: JSON.stringify({
+
+        sucursal: SUCURSAL,
+
+        empleado: empleado,
+
+        movimiento: tipo
+
+      })
+
+    });
+
+    mensaje.innerText =
+      tipo + " registrada: " + empleado;
+
+  } catch (error) {
+
+    console.error(error);
+
+    mensaje.innerText =
+      "Error al registrar.";
+
+  }
+
+  setTimeout(() => {
+
+    entradaBtn.disabled = false;
+    salidaBtn.disabled = false;
+
+  }, 2000);
+
+}
+
+
+/* ================================
+   BOTONES
+================================ */
+
+entradaBtn.addEventListener(
+  "click",
+  () => registrarMovimiento("ENTRADA")
+);
+
+salidaBtn.addEventListener(
+  "click",
+  () => registrarMovimiento("SALIDA")
+);
+
+
+/* ================================
+   INICIAR
+================================ */
+
+cargarModelos();
+
+</script>
+
+</body>
+</html>
