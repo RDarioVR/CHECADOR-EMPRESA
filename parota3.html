@@ -118,12 +118,15 @@
 
   <select id="empleado">
     <option value="">Selecciona empleado</option>
+
     <option value="José Félix Villa Cervantes">
       José Félix Villa Cervantes
     </option>
+
     <option value="Bianca Vianey Muñoz López">
       Bianca Vianey Muñoz López
     </option>
+
     <option value="Esmeralda Sujey Ramírez Salinas">
       Esmeralda Sujey Ramírez Salinas
     </option>
@@ -165,24 +168,39 @@ const SUCURSAL = "PAROTA 3";
 const DISTANCIA_MAXIMA = 0.55;
 
 const empleados = [
+
   "José Félix Villa Cervantes",
+
   "Bianca Vianey Muñoz López",
+
   "Esmeralda Sujey Ramírez Salinas"
+
 ];
 
-const video = document.getElementById("video");
-const empleadoSelect = document.getElementById("empleado");
-const registrarBtn = document.getElementById("registrar");
-const entradaBtn = document.getElementById("entrada");
-const salidaBtn = document.getElementById("salida");
-const mensaje = document.getElementById("mensaje");
+const video =
+document.getElementById("video");
+
+const empleadoSelect =
+document.getElementById("empleado");
+
+const registrarBtn =
+document.getElementById("registrar");
+
+const entradaBtn =
+document.getElementById("entrada");
+
+const salidaBtn =
+document.getElementById("salida");
+
+const mensaje =
+document.getElementById("mensaje");
 
 let modelosCargados = false;
 
 
-/* ================================
+/* =========================================================
    NORMALIZAR NOMBRE
-================================ */
+   ========================================================= */
 
 function normalizarNombre(nombre) {
 
@@ -195,39 +213,50 @@ function normalizarNombre(nombre) {
 }
 
 
-/* ================================
+/* =========================================================
    CLAVE LOCALSTORAGE
-================================ */
+   ========================================================= */
 
 function claveEmpleado(nombre) {
 
-  return "cara_" + SUCURSAL + "_" + normalizarNombre(nombre);
+  return "cara_" +
+         SUCURSAL +
+         "_" +
+         normalizarNombre(nombre);
 
 }
 
 
-/* ================================
+/* =========================================================
    CARGAR MODELOS
-================================ */
+   ========================================================= */
 
 async function cargarModelos() {
 
-  mensaje.innerText = "Cargando reconocimiento facial...";
+  mensaje.innerText =
+    "Cargando reconocimiento facial...";
 
   const URL_MODELOS =
     "https://justadudewhohacks.github.io/face-api.js/models";
 
   try {
 
-    await faceapi.nets.tinyFaceDetector.loadFromUri(URL_MODELOS);
+    await faceapi.nets.tinyFaceDetector.loadFromUri(
+      URL_MODELOS
+    );
 
-    await faceapi.nets.faceLandmark68Net.loadFromUri(URL_MODELOS);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(
+      URL_MODELOS
+    );
 
-    await faceapi.nets.faceRecognitionNet.loadFromUri(URL_MODELOS);
+    await faceapi.nets.faceRecognitionNet.loadFromUri(
+      URL_MODELOS
+    );
 
     modelosCargados = true;
 
-    mensaje.innerText = "Iniciando cámara...";
+    mensaje.innerText =
+      "Iniciando cámara...";
 
     iniciarCamara();
 
@@ -243,20 +272,24 @@ async function cargarModelos() {
 }
 
 
-/* ================================
+/* =========================================================
    INICIAR CÁMARA
-================================ */
+   ========================================================= */
 
 async function iniciarCamara() {
 
   try {
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user"
-      },
-      audio: false
-    });
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video: {
+          facingMode: "user"
+        },
+
+        audio: false
+
+      });
 
     video.srcObject = stream;
 
@@ -275,9 +308,9 @@ async function iniciarCamara() {
 }
 
 
-/* ================================
+/* =========================================================
    OBTENER DESCRIPTOR
-================================ */
+   ========================================================= */
 
 async function obtenerDescriptor() {
 
@@ -286,15 +319,20 @@ async function obtenerDescriptor() {
       .detectSingleFace(
         video,
         new faceapi.TinyFaceDetectorOptions({
+
           inputSize: 320,
+
           scoreThreshold: 0.5
+
         })
       )
       .withFaceLandmarks()
       .withFaceDescriptor();
 
   if (!deteccion) {
+
     return null;
+
   }
 
   return deteccion.descriptor;
@@ -302,104 +340,114 @@ async function obtenerDescriptor() {
 }
 
 
-/* ================================
+/* =========================================================
    REGISTRAR CARA
-================================ */
+   ========================================================= */
 
-registrarBtn.addEventListener("click", async () => {
+registrarBtn.addEventListener(
+  "click",
+  async () => {
 
-  if (!modelosCargados) {
+    if (!modelosCargados) {
 
-    mensaje.innerText =
-      "El reconocimiento facial todavía está cargando.";
+      mensaje.innerText =
+        "El reconocimiento facial todavía está cargando.";
 
-    return;
+      return;
 
-  }
+    }
 
-  const empleado = empleadoSelect.value;
+    const empleado =
+      empleadoSelect.value;
 
-  if (!empleado) {
+    if (!empleado) {
 
-    mensaje.innerText =
-      "Primero selecciona al empleado.";
+      mensaje.innerText =
+        "Primero selecciona al empleado.";
 
-    return;
+      return;
 
-  }
+    }
 
-  registrarBtn.disabled = true;
-
-  mensaje.innerText =
-    "Mira a la cámara. Registrando rostro...";
-
-  const descriptores = [];
-
-  for (let i = 0; i < 5; i++) {
+    registrarBtn.disabled = true;
 
     mensaje.innerText =
-      "Captura " + (i + 1) + " de 5...";
+      "Mira a la cámara. Registrando rostro...";
 
-    await new Promise(resolve =>
-      setTimeout(resolve, 1000)
-    );
+    const descriptores = [];
 
-    const descriptor =
-      await obtenerDescriptor();
+    for (let i = 0; i < 5; i++) {
 
-    if (descriptor) {
+      mensaje.innerText =
+        "Captura " + (i + 1) + " de 5...";
 
-      descriptores.push(
-        Array.from(descriptor)
+      await new Promise(
+        resolve => setTimeout(resolve, 1000)
+      );
+
+      const descriptor =
+        await obtenerDescriptor();
+
+      if (descriptor) {
+
+        descriptores.push(
+          Array.from(descriptor)
+        );
+
+      }
+
+    }
+
+    if (descriptores.length < 3) {
+
+      mensaje.innerText =
+        "No se pudo registrar correctamente. Intenta nuevamente.";
+
+      registrarBtn.disabled = false;
+
+      return;
+
+    }
+
+    const promedio = [];
+
+    for (let i = 0; i < 128; i++) {
+
+      let suma = 0;
+
+      descriptores.forEach(
+        d => {
+          suma += d[i];
+        }
+      );
+
+      promedio.push(
+        suma / descriptores.length
       );
 
     }
 
-  }
+    localStorage.setItem(
 
-  if (descriptores.length < 3) {
+      claveEmpleado(empleado),
+
+      JSON.stringify(promedio)
+
+    );
 
     mensaje.innerText =
-      "No se pudo registrar correctamente. Intenta nuevamente.";
+      "Cara registrada correctamente: " +
+      empleado;
 
     registrarBtn.disabled = false;
 
-    return;
-
   }
-
-  const promedio = [];
-
-  for (let i = 0; i < 128; i++) {
-
-    let suma = 0;
-
-    descriptores.forEach(d => {
-      suma += d[i];
-    });
-
-    promedio.push(
-      suma / descriptores.length
-    );
-
-  }
-
-  localStorage.setItem(
-    claveEmpleado(empleado),
-    JSON.stringify(promedio)
-  );
-
-  mensaje.innerText =
-    "Cara registrada correctamente: " + empleado;
-
-  registrarBtn.disabled = false;
-
-});
+);
 
 
-/* ================================
-   BUSCAR PERSONA
-================================ */
+/* =========================================================
+   IDENTIFICAR PERSONA
+   ========================================================= */
 
 async function identificarPersona() {
 
@@ -413,6 +461,7 @@ async function identificarPersona() {
   }
 
   let mejorEmpleado = null;
+
   let menorDistancia = Infinity;
 
   for (const empleado of empleados) {
@@ -423,7 +472,9 @@ async function identificarPersona() {
       );
 
     if (!guardado) {
+
       continue;
+
     }
 
     const descriptorGuardado =
@@ -439,8 +490,11 @@ async function identificarPersona() {
 
     if (distancia < menorDistancia) {
 
-      menorDistancia = distancia;
-      mejorEmpleado = empleado;
+      menorDistancia =
+        distancia;
+
+      mejorEmpleado =
+        empleado;
 
     }
 
@@ -452,8 +506,13 @@ async function identificarPersona() {
   ) {
 
     return {
-      empleado: mejorEmpleado,
-      distancia: menorDistancia
+
+      empleado:
+        mejorEmpleado,
+
+      distancia:
+        menorDistancia
+
     };
 
   }
@@ -463,9 +522,9 @@ async function identificarPersona() {
 }
 
 
-/* ================================
+/* =========================================================
    REGISTRAR MOVIMIENTO
-================================ */
+   ========================================================= */
 
 async function registrarMovimiento(tipo) {
 
@@ -479,6 +538,7 @@ async function registrarMovimiento(tipo) {
   }
 
   entradaBtn.disabled = true;
+
   salidaBtn.disabled = true;
 
   mensaje.innerText =
@@ -493,6 +553,7 @@ async function registrarMovimiento(tipo) {
       "Rostro no reconocido.";
 
     entradaBtn.disabled = false;
+
     salidaBtn.disabled = false;
 
     return;
@@ -505,70 +566,109 @@ async function registrarMovimiento(tipo) {
   mensaje.innerText =
     "Identificado: " + empleado;
 
+
+  /* =======================================================
+     CAMBIO IMPORTANTE:
+     ENVIAR COMO PARÁMETROS PARA QUE APPS SCRIPT
+     LOS RECIBA EN e.parameter
+     ======================================================= */
+
   try {
 
-    await fetch(URL_APPS_SCRIPT, {
+    const datos =
+      new URLSearchParams();
 
-      method: "POST",
+    datos.append(
+      "sucursal",
+      SUCURSAL
+    );
 
-      mode: "no-cors",
+    datos.append(
+      "empleado",
+      empleado
+    );
 
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
+    datos.append(
+      "movimiento",
+      tipo
+    );
 
-      body: JSON.stringify({
 
-        sucursal: SUCURSAL,
+    await fetch(
+      URL_APPS_SCRIPT,
+      {
 
-        empleado: empleado,
+        method: "POST",
 
-        movimiento: tipo
+        mode: "no-cors",
 
-      })
+        body: datos
 
-    });
+      }
+    );
+
 
     mensaje.innerText =
-      tipo + " registrada: " + empleado;
+      tipo +
+      " registrada: " +
+      empleado;
+
 
   } catch (error) {
 
     console.error(error);
 
     mensaje.innerText =
-      "Error al registrar.";
+      "Error al enviar el registro.";
 
   }
 
-  setTimeout(() => {
 
-    entradaBtn.disabled = false;
-    salidaBtn.disabled = false;
+  setTimeout(
+    () => {
 
-  }, 2000);
+      entradaBtn.disabled = false;
+
+      salidaBtn.disabled = false;
+
+    },
+    2000
+  );
 
 }
 
 
-/* ================================
+/* =========================================================
    BOTONES
-================================ */
+   ========================================================= */
 
 entradaBtn.addEventListener(
+
   "click",
-  () => registrarMovimiento("ENTRADA")
+
+  () =>
+    registrarMovimiento(
+      "ENTRADA"
+    )
+
 );
+
 
 salidaBtn.addEventListener(
+
   "click",
-  () => registrarMovimiento("SALIDA")
+
+  () =>
+    registrarMovimiento(
+      "SALIDA"
+    )
+
 );
 
 
-/* ================================
+/* =========================================================
    INICIAR
-================================ */
+   ========================================================= */
 
 cargarModelos();
 
